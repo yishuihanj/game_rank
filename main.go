@@ -7,6 +7,9 @@ import (
 	"time"
 )
 
+// 该排行榜使用跳表结构，使用actor模型来保证了请求的顺序
+// todo 该排行榜没有实现数据的持久化，可作为单区单服使用，在玩家数量不多时，比如20000人
+
 func main() {
 	fmt.Println("hello game_rank")
 	gameInit()
