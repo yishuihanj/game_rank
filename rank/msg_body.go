@@ -2,17 +2,18 @@ package rank
 
 type RankSingleInfo struct {
 	Ranking  uint32
-	MemberId uint64
+	PlayerId string
 	Score    uint64
 }
 
 type RankSetSingleReq struct {
-	MemberId uint64
+	PlayerId string
 	Score    uint64
+	Ts       int64
 }
 
 type RankGetByMemberIdReq struct {
-	MemberId uint64
+	PlayerId string
 }
 
 type RankGetByMemberIdRsp struct {
@@ -25,5 +26,14 @@ type RankGetRangeReq struct {
 }
 
 type RankGetRangeRsp struct {
+	List []*RankSingleInfo
+}
+
+type GetPlayerRankRangeReq struct {
+	PlayerId string
+	RangeNum uint32
+}
+
+type GetPlayerRankRangeResp struct {
 	List []*RankSingleInfo
 }

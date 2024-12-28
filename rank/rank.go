@@ -22,27 +22,26 @@ type Rank struct {
 
 func NewRank() *Rank {
 	r := &Rank{
-		set:    zset.NewZSet(),
-		Locker: sync.RWMutex{},
-		PId:    actor.NewPID(1, actor_def.Actor_Name_Single_Rank),
-		rpcDispatch: actor.NewDispatcher(10, func(uid uint64, id uint32, ms int64) {
-
-		}),
+		set:         zset.NewZSet(),
+		Locker:      sync.RWMutex{},
+		PId:         actor_def.RankMgrSystemPID,
+		rpcDispatch: actor.NewDispatcher(10),
 	}
-	r.rpcRegister()
+	r.register()
 	return r
 }
 
 // ChangeScore 数据发生变化
-func (r *Rank) ChangeScore(id uint64, score uint64) *zset.ZSkipListNode {
+func (r *Rank) ChangeScore(id string, score uint64, ts int64) *zset.ZSkipListNode {
 	r.Locker.Lock()
 	defer r.Locker.Unlock()
 	if r.set.Length() >= maxNum && score <= r.set.MinScore() {
 		return nil
 	}
-
-	t := time.Now().UnixNano()
-	ele := r.set.Add(score, id, t)
+	if ts == 0 {
+		ts = time.Now().UnixNano()
+	}
+	ele := r.set.Add(score, id, ts)
 	if ele == nil {
 		return nil
 	}
@@ -52,14 +51,14 @@ func (r *Rank) ChangeScore(id uint64, score uint64) *zset.ZSkipListNode {
 	return ele
 }
 
-func (r *Rank) GetRankById(id uint64) *RankSingleInfo {
+func (r *Rank) GetRankById(id string) *RankSingleInfo {
 	r.Locker.RLock()
 	defer r.Locker.RUnlock()
 	ranking, s := r.set.Rank(id, true)
 	if s == nil {
 		return nil
 	}
-	return &RankSingleInfo{Ranking: ranking, MemberId: s.Key(), Score: s.Score()}
+	return &RankSingleInfo{Ranking: ranking, PlayerId: s.Key(), Score: s.Score()}
 }
 
 func (r *Rank) Length() uint32 {
@@ -74,14 +73,17 @@ func (r *Rank) GetRange(rankBegin uint32, rankEnd uint32) ([]*zset.ZSkipListNode
 	return rangeNodes, start
 }
 
-// TotalNum 总人数
-func (r *Rank) TotalNum() uint32 {
-	return r.set.Length()
-}
+func (r *Rank) GetPlayerRankRange(playerId string, rangeNum uint32) ([]*zset.ZSkipListNode, uint32) {
+	playerInfo := r.GetRankById(playerId)
+	if playerInfo == nil {
+		return nil, 0
+	}
+	start := uint32(1)
+	if playerInfo.Ranking >= rangeNum {
+		start = playerInfo.Ranking - rangeNum
+	}
+	end := playerInfo.Ranking + rangeNum
 
-// MinScore 最小积分
-func (r *Rank) MinScore() uint64 {
-	r.Locker.RLock()
-	defer r.Locker.RUnlock()
-	return r.set.MinScore()
+	list, _ := r.GetRange(start, end)
+	return list, start
 }

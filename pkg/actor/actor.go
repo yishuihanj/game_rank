@@ -40,10 +40,7 @@ func (p *defaultPID) Equal(pid PID) bool {
 
 type Actor interface {
 	PID() PID
-
-	// Process 消息处理
 	Process(msg *Message)
-
 	OnStop()
 }
 
@@ -76,16 +73,6 @@ func dispatchMessage(a Actor, m interface{}, buff int) (exit bool) {
 	}()
 	switch t := m.(type) {
 	case *Message: // process message
-		if t.Id < SysId_End { // 系统消息
-			pass, exit := processSysMessage(a, t, buff)
-			if exit {
-				return true
-			}
-			if !pass {
-				return false
-			}
-		}
-
 		a.Process(t)
 
 	case func(pid PID): // process cb

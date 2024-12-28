@@ -20,10 +20,10 @@ type ZSkipListNode struct {
 	level    []zSkipListLevel
 	score    uint64
 	time     int64
-	key      uint64
+	key      string
 }
 
-func zslCreateNode(level int, score uint64, key uint64, time int64) *ZSkipListNode {
+func zslCreateNode(level int, score uint64, key string, time int64) *ZSkipListNode {
 	zn := &ZSkipListNode{
 		time:  time,
 		key:   key,
@@ -39,7 +39,7 @@ func (node *ZSkipListNode) Score() uint64 {
 }
 
 // Key return key
-func (node *ZSkipListNode) Key() uint64 {
+func (node *ZSkipListNode) Key() string {
 	return node.key
 }
 
@@ -88,7 +88,7 @@ func zslCreate() *zSkipList {
 	zsl := &zSkipList{
 		level: 1,
 	}
-	zsl.header = zslCreateNode(skipListMaxLevel, 0, 0, 0, nil)
+	zsl.header = zslCreateNode(skipListMaxLevel, 0, "", 0)
 	return zsl
 }
 
@@ -203,7 +203,7 @@ func (list *zSkipList) zslGetRank(node *ZSkipListNode) uint32 {
 			rank += x.level[i].span
 			x = next
 		}
-		if x.key != 0 && x.key == node.key {
+		if x.key != "" && x.key == node.key {
 			return rank
 		}
 	}
@@ -242,50 +242,20 @@ func (list *zSkipList) getElementByRank(rank uint32) *ZSkipListNode {
 	return nil
 }
 
-// GetSimilar 获得跟score最相近的节点
-func (list *zSkipList) GetSimilar(score uint64) *ZSkipListNode {
-	x := list.header
-
-	for i := list.level - 1; i >= 0; i-- {
-		for n := x.level[i].forward; n != nil && n.Score() < score; n = x.level[i].forward {
-			x = x.level[i].forward
-		}
-	}
-
-	if x == list.header {
-		return x.level[0].forward
-	}
-
-	var delta = func(x1, x2 uint64) uint64 {
-		if x1 <= x2 {
-			return x2 - x1
-		}
-		return x1 - x2
-	}
-
-	if x.level[0].forward != nil && delta(x.level[0].forward.Score(), score) < delta(score, x.Score()) {
-		return x.level[0].forward
-	}
-	return x
-}
-
-// ZSet set
 type ZSet struct {
-	dict map[uint64]*ZSkipListNode
+	dict map[string]*ZSkipListNode
 	zsl  *zSkipList
 }
 
-// NewZSet create ZSet
 func NewZSet() *ZSet {
 	zs := &ZSet{
-		dict: make(map[uint64]*ZSkipListNode),
+		dict: make(map[string]*ZSkipListNode),
 		zsl:  zslCreate(),
 	}
 	return zs
 }
 
-// Add a new element or update the score of an existing element
-func (zs *ZSet) Add(score uint64, key uint64, t int64) *ZSkipListNode {
+func (zs *ZSet) Add(score uint64, key string, t int64) *ZSkipListNode {
 	if node := zs.dict[key]; node != nil {
 		oldScore := node.score
 		if score == oldScore {
@@ -315,7 +285,7 @@ func (zs *ZSet) Add(score uint64, key uint64, t int64) *ZSkipListNode {
 
 // Delete the element 'ele' from the sorted set,
 // return 1 if the element existed and was deleted, 0 otherwise
-func (zs *ZSet) Delete(id uint64) int {
+func (zs *ZSet) Delete(id string) int {
 	node := zs.dict[id]
 	if node == nil {
 		return 0
@@ -326,7 +296,7 @@ func (zs *ZSet) Delete(id uint64) int {
 }
 
 // Rank return 1-based rank or 0 if not exist
-func (zs *ZSet) Rank(id uint64, reverse bool) (uint32, *ZSkipListNode) {
+func (zs *ZSet) Rank(id string, reverse bool) (uint32, *ZSkipListNode) {
 	node := zs.dict[id]
 	if node != nil {
 		rank := zs.zsl.zslGetRank(node)
@@ -340,15 +310,6 @@ func (zs *ZSet) Rank(id uint64, reverse bool) (uint32, *ZSkipListNode) {
 		}
 	}
 	return 0, nil
-}
-
-// Score return score
-func (zs *ZSet) Score(id uint64) uint64 {
-	node := zs.dict[id]
-	if node != nil {
-		return node.score
-	}
-	return 0
 }
 
 // Range return 1-based elements in [start, end]
@@ -382,21 +343,6 @@ func (zs *ZSet) Range(start uint32, end uint32, reverse bool, retNode *[]*ZSkipL
 	return start
 }
 
-// Range return 1-based elements in [start, end]
-func (zs *ZSet) MemberNode(rank uint32, reverse bool) *ZSkipListNode {
-	if rank == 0 {
-		rank = 1
-	}
-	if rank > zs.zsl.length {
-		return nil
-	}
-	if reverse {
-		return zs.zsl.getElementByRank(zs.zsl.length - rank + 1)
-	} else {
-		return zs.zsl.getElementByRank(rank)
-	}
-}
-
 // Length return the element count
 func (zs *ZSet) Length() uint32 {
 	return zs.zsl.length
@@ -409,22 +355,6 @@ func (zs *ZSet) MinScore() uint64 {
 		return first.score
 	}
 	return 0
-}
-
-// Tail return the last element
-func (zs *ZSet) Tail() *ZSkipListNode {
-	if zs.zsl.tail != nil {
-		return zs.zsl.tail
-	}
-	return nil
-}
-
-// Head return the head
-func (zs *ZSet) Head() *ZSkipListNode {
-	if zs.zsl.tail != nil {
-		return zs.zsl.header
-	}
-	return nil
 }
 
 func (zs *ZSet) GetAll() []*ZSkipListNode {
@@ -446,13 +376,4 @@ func (zs *ZSet) DeleteFirst() *ZSkipListNode {
 	zs.zsl.delete(node)
 	delete(zs.dict, node.key)
 	return node
-}
-
-// GetSimilar 获得跟score最相近的节点
-func (zs *ZSet) GetSimilar(score uint64) *ZSkipListNode {
-	return zs.zsl.GetSimilar(score)
-}
-
-func (zs *ZSet) GetRankByNode(node *ZSkipListNode) uint32 {
-	return zs.zsl.zslGetRank(node)
 }

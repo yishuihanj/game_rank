@@ -21,8 +21,9 @@ func (r *Rank) Register() {
 
 }
 
-func (r *Rank) rpcRegister() {
+func (r *Rank) register() {
 	r.rpcDispatch.Register(actor_def.MsgId_Rank_SetRankData, r.RankSetRankData)
 	r.rpcDispatch.Register(actor_def.MsgId_Rank_GetRankRange, r.RankGetRankRange)
 	r.rpcDispatch.Register(actor_def.MsgId_Rank_GetRankByMemberId, r.RankGetRankByMemberId)
+	r.rpcDispatch.Register(actor_def.MsgId_Rank_GetPlayerRankRange, r.RankGetPlayerRankRange)
 }
