@@ -7,10 +7,6 @@ import (
 	"time"
 )
 
-const (
-	criticalTIme = time.Millisecond * 100
-)
-
 type Handler func(ctx context.Context, data *Message) error
 type Dispatcher struct {
 	handlers       map[uint32]Handler

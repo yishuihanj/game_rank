@@ -13,10 +13,6 @@ type Logger interface {
 
 var logger Logger = defaultLogger{}
 
-func SetLogger(log Logger) {
-	logger = log
-}
-
 type defaultLogger struct{}
 
 func (defaultLogger) Info(format string, v ...interface{}) {

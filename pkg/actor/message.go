@@ -1,14 +1,8 @@
 package actor
 
-// actor system‘s msg id 0-100
 const (
-	SysId_Stop         = 1
-	SysId_Metric       = 2
-	SysId_NewActor     = 3
-	SysId_DestroyActor = 4
-	SysId_Sync         = 5
-
-	SysId_End = 100
+	SysId_Stop   = 1
+	SysId_Metric = 2
 )
 
 type Message struct {
